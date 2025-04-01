@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagrama Colaborativo en Tiempo Real (Gratis)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #diagramContainer {
+            width: 100%;
+            height: 70vh;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+        }
+        .status {
+            color: #555;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+    </style>
+    <!-- Firebase (Gratis) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+</head>
+<body>
+    <h1>🔄 Diagrama Colaborativo en Tiempo Real</h1>
+    <p class="status" id="status">🟡 Conectando...</p>
+    <div id="diagramContainer"></div>
+    <p><small>💡 Todos los cambios se guardan automáticamente y se sincronizan en vivo.</small></p>
+
+    <!-- Draw.io Embebido -->
+    <script src="https://embed.diagrams.net/js/embed-static.min.js"></script>
+    
+    <script>
+        // 🔥 Configura Firebase (GRATIS, sigue los pasos abajo)
+        const firebaseConfig = {
+  apiKey: "AIzaSyBGrtio9lIc922TT9KyC0nkG8mMYyheOHM",
+  authDomain: "dislicores-app-bdf8c.firebaseapp.com",
+  databaseURL: "https://dislicores-app-bdf8c-default-rtdb.firebaseio.com",
+  projectId: "dislicores-app-bdf8c",
+  storageBucket: "dislicores-app-bdf8c.firebasestorage.app",
+  messagingSenderId: "245350083614",
+  appId: "1:245350083614:web:ac48215a31500f0952920f",
+  measurementId: "G-ZBL7DL4611"
+}
+
+        // 🚀 Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const diagramRef = db.ref('diagrama_colaborativo');
+
+        // 🖍️ Variables para evitar bucles de sincronización
+        let editor;
+        let ignoreUpdates = false;
+
+        // ⚡ Iniciar Editor
+        function initEditor() {
+            const container = document.getElementById('diagramContainer');
+            
+            // 🎨 Configuración de Draw.io
+            editor = new DrawioEmbed(container, {
+                ui: 'min',     // Interfaz simple
+                zoom: '1',     // Zoom inicial
+                fit: '1',      // Ajustar al contenedor
+                spin: '1',     // Mostrar carga
+                proto: 'json', // Formato de comunicación
+                saveAndExit: '0', // No salir al guardar
+                lang: 'es'     // Idioma español
+            });
+
+            // ✅ Cuando el editor esté listo
+            editor.on('ready', () => {
+                document.getElementById('status').textContent = "🟢 Editor listo";
+                
+                // 📥 Cargar datos desde Firebase
+                diagramRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data && !ignoreUpdates) {
+                        editor.load(data.xml);
+                    }
+                });
+            });
+
+            // 💾 Cuando se guarde un cambio
+            editor.on('save', (xml) => {
+                if (!ignoreUpdates) {
+                    document.getElementById('status').textContent = "🔄 Guardando...";
+                    diagramRef.set({ xml }).then(() => {
+                        document.getElementById('status').textContent = "🟢 Guardado y sincronizado";
+                    });
+                }
+            });
+        }
+
+        // 🏁 Iniciar cuando la página cargue
+        window.addEventListener('DOMContentLoaded', initEditor);
+    </script>
+</body>
+</html>
