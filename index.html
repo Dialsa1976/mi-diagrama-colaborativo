@@ -29,6 +29,8 @@
     <!-- Firebase (Gratis) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <!-- Draw.io CORREGIDO (usando viewer.min.js) -->
+    <script src="https://www.draw.io/js/viewer.min.js"></script>
 </head>
 <body>
     <h1>🔄 Diagrama Colaborativo en Tiempo Real</h1>
@@ -36,21 +38,18 @@
     <div id="diagramContainer"></div>
     <p><small>💡 Todos los cambios se guardan automáticamente y se sincronizan en vivo.</small></p>
 
-    <!-- Draw.io Embebido -->
-    <script src="https://embed.diagrams.net/js/embed-static.min.js"></script>
-    
     <script>
-        // 🔥 Configura Firebase (GRATIS, sigue los pasos abajo)
+        // 🔥 Configura Firebase (GRATIS)
         const firebaseConfig = {
-  apiKey: "AIzaSyBGrtio9lIc922TT9KyC0nkG8mMYyheOHM",
-  authDomain: "dislicores-app-bdf8c.firebaseapp.com",
-  databaseURL: "https://dislicores-app-bdf8c-default-rtdb.firebaseio.com",
-  projectId: "dislicores-app-bdf8c",
-  storageBucket: "dislicores-app-bdf8c.firebasestorage.app",
-  messagingSenderId: "245350083614",
-  appId: "1:245350083614:web:ac48215a31500f0952920f",
-  measurementId: "G-ZBL7DL4611"
-}
+            apiKey: "AIzaSyBGrtio9lIc922TT9KyC0nkG8mMYyheOHM",
+            authDomain: "dislicores-app-bdf8c.firebaseapp.com",
+            databaseURL: "https://dislicores-app-bdf8c-default-rtdb.firebaseio.com",
+            projectId: "dislicores-app-bdf8c",
+            storageBucket: "dislicores-app-bdf8c.firebasestorage.app",
+            messagingSenderId: "245350083614",
+            appId: "1:245350083614:web:ac48215a31500f0952920f",
+            measurementId: "G-ZBL7DL4611"
+        };
 
         // 🚀 Inicializar Firebase
         firebase.initializeApp(firebaseConfig);
@@ -61,19 +60,21 @@
         let editor;
         let ignoreUpdates = false;
 
-        // ⚡ Iniciar Editor
+        // ⚡ Iniciar Editor (CORREGIDO: usa DrawioViewer)
         function initEditor() {
             const container = document.getElementById('diagramContainer');
             
-            // 🎨 Configuración de Draw.io
-            editor = new DrawioEmbed(container, {
-                ui: 'min',     // Interfaz simple
-                zoom: '1',     // Zoom inicial
-                fit: '1',      // Ajustar al contenedor
-                spin: '1',     // Mostrar carga
-                proto: 'json', // Formato de comunicación
-                saveAndExit: '0', // No salir al guardar
-                lang: 'es'     // Idioma español
+            // 🎨 Configuración de Draw.io (nueva sintaxis)
+            editor = new DrawioViewer(container, {
+                config: {
+                    ui: 'min',     // Interfaz simple
+                    zoom: '1',     // Zoom inicial
+                    fit: '1',      // Ajustar al contenedor
+                    spin: '1',     // Mostrar carga
+                    proto: 'json', // Formato de comunicación
+                    saveAndExit: '0', // No salir al guardar
+                    lang: 'es'     // Idioma español
+                }
             });
 
             // ✅ Cuando el editor esté listo
@@ -95,6 +96,9 @@
                     document.getElementById('status').textContent = "🔄 Guardando...";
                     diagramRef.set({ xml }).then(() => {
                         document.getElementById('status').textContent = "🟢 Guardado y sincronizado";
+                    }).catch((error) => {
+                        console.error("Error al guardar:", error);
+                        document.getElementById('status').textContent = "🔴 Error al guardar";
                     });
                 }
             });
