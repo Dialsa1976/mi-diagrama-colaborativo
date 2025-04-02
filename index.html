@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagrama Colaborativo</title>
+    <style>
+        #diagramFrame {
+            width: 100%;
+            height: 80vh;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        #status {
+            margin: 10px 0;
+            padding: 8px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            font-family: Arial, sans-serif;
+        }
+        h2 {
+            color: #2c3e50;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+</head>
+<body>
+    <h2>Editor de Diagramas Colaborativo</h2>
+    <div id="status">🟡 Cargando editor...</div>
+    <iframe id="diagramFrame" src="https://embed.diagrams.net/?embed=1&ui=min&lang=es&proto=json&spin=1&saveAndExit=0"></iframe>
+
+    <script>
+        // Configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBGrtio9lIc922TT9KyC0nkG8mMYyheOHM",
+            authDomain: "dislicores-app-bdf8c.firebaseapp.com",
+            databaseURL: "https://dislicores-app-bdf8c-default-rtdb.firebaseio.com",
+            projectId: "dislicores-app-bdf8c",
+            storageBucket: "dislicores-app-bdf8c.firebasestorage.app",
+            messagingSenderId: "245350083614",
+            appId: "1:245350083614:web:ac48215a31500f0952920f"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const diagramRef = db.ref('diagrama_colaborativo');
+
+        let ignoreUpdates = false;
+        const iframe = document.getElementById('diagramFrame');
+        const statusElement = document.getElementById('status');
+
+        // Función para enviar mensajes al editor
+        function postToEditor(action, data) {
+            iframe.contentWindow.postMessage(JSON.stringify({
+                action: action,
+                ...data
+            }), '*');
+        }
+
+        // Escuchar mensajes del editor
+        window.addEventListener('message', (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                
+                // Editor listo
+                if (msg.event === 'init') {
+                    statusElement.textContent = "🟢 Editor listo - Cargando diagrama...";
+                    
+                    // Cargar datos de Firebase
+                    diagramRef.once('value').then((snapshot) => {
+                        const data = snapshot.val();
+                        if (data && data.xml) {
+                            postToEditor('load', { xml: data.xml });
+                            statusElement.textContent = "🟢 Editor listo - Diagrama cargado";
+                        } else {
+                            statusElement.textContent = "🟢 Editor listo - Nuevo diagrama";
+                        }
+                    });
+                }
+                
+                // Cambios guardados
+                if (msg.event === 'save') {
+                    if (!ignoreUpdates) {
+                        statusElement.textContent = "🔄 Guardando en la nube...";
+                        diagramRef.set({ xml: msg.xml })
+                            .then(() => {
+                                statusElement.textContent = "🟢 Cambios guardados";
+                            })
+                            .catch((error) => {
+                                console.error("Error al guardar:", error);
+                                statusElement.textContent = "🔴 Error al guardar";
+                            });
+                    }
+                }
+            } catch (e) {
+                console.log("Mensaje no reconocido:", event.data);
+            }
+        });
+
+        // Configurar el iframe cuando cargue
+        iframe.onload = function() {
+            statusElement.textContent = "🟡 Conectando con el editor...";
+        };
+
+        // Sincronización en tiempo real
+        diagramRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.xml && !ignoreUpdates) {
+                ignoreUpdates = true;
+                postToEditor('load', { xml: data.xml });
+                setTimeout(() => { ignoreUpdates = false; }, 1000);
+            }
+        });
+    </script>
+</body>
+</html>
